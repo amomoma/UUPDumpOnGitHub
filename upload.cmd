@@ -40,7 +40,7 @@ if "%DEBUG%"=="1" (
 echo Uploading file to filebin.net, please wait...
 
 :: Upload file to Filebin
-curl --progress-bar ^
+curl -# ^
      -X POST ^
      -H "Content-Type: application/octet-stream" ^
      --data-binary "@%FILE%" ^
