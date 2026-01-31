@@ -12,14 +12,6 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Check if jq is installed
-where jq >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: jq is not installed or not in PATH.
-    pause
-    exit /b 1
-)
-
 :: Check if a file argument is provided
 if "%~1"=="" (
     echo ERROR: No file specified!
@@ -36,58 +28,34 @@ if not exist "%FILE%" (
     exit /b 1
 )
 
-:: Query GoFile API for the best server
-for /f "delims=" %%i in ('curl -s https://api.gofile.io/servers') do (
-    set "SERVER_RESPONSE=%%i"
-)
+:: Generate a bin name (based on timestamp)
+set "BIN=uupdump_%DATE:~10,4%%DATE:~4,2%%DATE:~7,2%_%TIME:~0,2%%TIME:~3,2%%TIME:~6,2%"
+set "BIN=%BIN: =0%"
 
-:: Debug: Show API response
+:: Debug: Show bin name
 if "%DEBUG%"=="1" (
-    echo Server Response: !SERVER_RESPONSE!
+    echo Filebin bin: %BIN%
 )
 
-:: Extract the correct server name
-for /f "delims=" %%i in ('echo !SERVER_RESPONSE! ^| jq -r ".data.servers[0].name"') do (
-    set "SERVER=%%i"
-)
+echo Uploading file to filebin.net, please wait...
 
-:: Debug: Show selected server
-if "%DEBUG%"=="1" (
-    echo Selected Server: !SERVER!
-)
+:: Upload file to Filebin
+curl --progress-bar ^
+     -X POST ^
+     -H "Content-Type: application/octet-stream" ^
+     --data-binary "@%FILE%" ^
+     "https://filebin.net/%BIN%/%~nx1" >nul
 
-:: Check if server was retrieved
-if "!SERVER!"=="" (
-    echo ERROR: Failed to retrieve a server from GoFile API.
+if errorlevel 1 (
+    echo ERROR: Upload failed.
     pause
     exit /b 1
 )
 
-:: Upload the file with a progress bar
-echo Uploading file, please wait...
-for /f "delims=" %%i in ('curl --progress-bar -F "file=@%FILE%" https://!SERVER!.gofile.io/uploadFile') do (
-    set "UPLOAD_RESPONSE=%%i"
-)
+:: Construct download link
+set "LINK=https://filebin.net/%BIN%/%~nx1"
 
-:: Debug: Show upload response
-if "%DEBUG%"=="1" (
-    echo Upload Response: !UPLOAD_RESPONSE!
-)
-
-:: Extract the download link
-for /f "delims=" %%i in ('echo !UPLOAD_RESPONSE! ^| jq -r ".data.downloadPage"') do (
-    set "LINK=%%i"
-)
-
-:: Check if upload was successful
-if "!LINK!"=="" (
-    echo ERROR: Upload failed or download link not retrieved.
-    pause
-    exit /b 1
-)
-
-:: Show the download link
 echo.
 echo Upload successful! Download link:
-echo !LINK!
+echo %LINK%
 pause
