@@ -44,7 +44,7 @@ curl -# ^
      -X POST ^
      -H "Content-Type: application/octet-stream" ^
      --data-binary "@%FILE%" ^
-     "https://filebin.net/%BIN%/%~nx1" >nul
+     "https://filebin.net/%BIN%/%~nx1"
 
 if errorlevel 1 (
     echo ERROR: Upload failed.
